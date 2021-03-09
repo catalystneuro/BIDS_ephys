@@ -62,15 +62,22 @@ def copy_electrodes(nwbfile_in, nwbfile_out):
                                            location=e_group.location,
                                            device=nwbfile_out.devices.get(e_group.device.name, None))
     if e_table is not None:
+        default_electrode_colnames = ['x','y','z','group','group_name','imp','location','filtering',
+                                      'id','rel_x','rel_y','rel_z','reference']
         for electrode_no in range(len(e_table)):
             in_dict = {}
             for colname in e_table.colnames:
-                if colname == 'group':
-                    in_dict.update(
-                        {colname: nwbfile_out.electrode_groups.get(e_table[colname].data[electrode_no].name, None)})
-                else:
-                    in_dict.update({colname: e_table[colname].data[electrode_no]})
+                if colname in default_electrode_colnames:
+                    if colname == 'group':
+                        in_dict.update(
+                            {colname: nwbfile_out.electrode_groups.get(e_table[colname].data[electrode_no].name, None)})
+                    else:
+                        in_dict.update({colname: e_table[colname].data[electrode_no]})
             nwbfile_out.add_electrode(**in_dict)
+        for custom_e_column in set(e_table.colnames)-set(default_electrode_colnames):
+            nwbfile_out.add_electrode_column(name=e_table[custom_e_column].name,
+                                             description=e_table[custom_e_column].description,
+                                             data=e_table[custom_e_column].data[()])
     return nwbfile_out.electrodes
 
 

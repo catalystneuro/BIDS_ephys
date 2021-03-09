@@ -28,6 +28,8 @@ def bep_organize(dataset_path, output_path=None, move_nwb=False):
 
     for nwb_file in dataset_path.glob('**/*.nwb'):
         channels_df = pd.DataFrame(columns=['channel_id', 'Contact_id', 'type', 'units', 'sampling_frequency'])
+        contacts_df = pd.DataFrame(columns=['x','y','z','impedance','contact_id','probe_id','Location'])
+        probes_df = pd.DataFrame(columns=['probeID','type'])
         sessions_df = pd.DataFrame(columns=['session_id', '#_trials', 'comment'])
         with NWBHDF5IO(str(nwb_file), 'r') as io:
             nwbfile = io.read()
@@ -63,7 +65,18 @@ def bep_organize(dataset_path, output_path=None, move_nwb=False):
             for chan_no in range(no_channels):
                 channels_df.loc[len(channels_df.index)] = [chan_no, 'n.a.', 'neural signal', conversion_factor + unit,
                                                             sampling_frequency]
-
+            #contacts/probes info:
+            e_table = nwbfile.acquisition['ElectricalSeries'].electroces.table
+            for contact_no in range(len(e_table)):
+                contacts_df.loc[len(contacts_df.index)] = [e_table.x[contact_no],
+                                                           e_table.y[contact_no],
+                                                           e_table.z[contact_no],
+                                                           e_table.imp[contact_no],
+                                                           contact_no,
+                                                           e_table.group_name[contact_no],
+                                                           e_table.location[contact_no]]
+            for device in nwbfile.devices.values():
+                probes_df.loc[len(probes_df.index)] = [device.name, 'acute']
         # construct the folders:
         generic_ephys_name = f'{subject_label}_{session_label}_'
         subject_path = output_path/subject_label
@@ -82,6 +95,13 @@ def bep_organize(dataset_path, output_path=None, move_nwb=False):
         bep_channels_path = data_path/(generic_ephys_name + 'channels.tsv')
         if not bep_channels_path.exists():
             channels_df.to_csv(bep_channels_path, sep='\t')
+        #probes/contacts:
+        bep_probes_path = data_path/(generic_ephys_name + 'probes.tsv')
+        if not bep_probes_path.exists():
+            probes_df.to_csv(bep_probes_path, sep='\t')
+        bep_contacts_path = data_path/(generic_ephys_name + 'contacts.tsv')
+        if not bep_contacts_path.exists():
+            contacts_df.to_csv(bep_contacts_path, sep='\t')
         # create sessions.json
         bep_sessions_path = subject_path/f'{subject_label}_sessions.tsv'
         if not bep_sessions_path.exists():

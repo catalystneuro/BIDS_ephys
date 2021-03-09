@@ -2,25 +2,29 @@ from pathlib import Path
 
 import numpy as np
 from hdmf.common.table import DynamicTableRegion
+from joblib import Parallel, delayed
 from pynwb import NWBFile
 from pynwb import NWBHDF5IO
 from pynwb.ecephys import ElectricalSeries
 from pynwb.file import Subject
 
 
-def create_stub(data_path, **kwargs):
+def create_stub(data_path, n_jobs=10, **kwargs):
     data_path = Path(data_path)
     if data_path.suffix == '.nwb':
         out_path = data_path.with_name(f'stub_{data_path.name}')
         copy_nwb(data_path, out_path, **kwargs)
         print(f'saved {data_path} to {out_path}')
     elif data_path.is_dir():
-        out_path = data_path.parent/'stub'/data_path.name
-        for nwb_file in data_path.glob('**/*.nwb'):
+        def convert_to_nwb(nwb_file, data_path):
+            out_path = data_path.parent/'stub'/data_path.name
             save_path = out_path/nwb_file.relative_to(data_path)
             save_path.parent.mkdir(parents=True, exist_ok=True)
             copy_nwb(nwb_file, save_path, **kwargs)
             print(f'saved {nwb_file} to {save_path}')
+
+        Parallel(n_jobs=n_jobs)(delayed(convert_to_nwb)(nwb_file, data_path)
+                                for nwb_file in data_path.glob('**/*.nwb'))
     else:
         raise ValueError('data_path should be path to .nwb or folder containing nwb')
 
@@ -45,8 +49,8 @@ def copy_nwb(nwb_file_path, nwb_save_path, **kwargs):
             stub_len = kwargs.get('stub', 0.01)
             es = create_electricalseries(nwbfile, nwbfile_stub, series_name=es_name, stub=stub_len)
             nwbfile_stub.add_acquisition(es)
-            #create processing:
-            #TODO
+            # create processing:
+            # TODO
             io2.write(nwbfile_stub)
 
 
@@ -62,8 +66,8 @@ def copy_electrodes(nwbfile_in, nwbfile_out):
                                            location=e_group.location,
                                            device=nwbfile_out.devices.get(e_group.device.name, None))
     if e_table is not None:
-        default_electrode_colnames = ['x','y','z','group','group_name','imp','location','filtering',
-                                      'id','rel_x','rel_y','rel_z','reference']
+        default_electrode_colnames = ['x', 'y', 'z', 'group', 'group_name', 'imp', 'location', 'filtering',
+                                      'id', 'rel_x', 'rel_y', 'rel_z', 'reference']
         for electrode_no in range(len(e_table)):
             in_dict = {}
             for colname in e_table.colnames:
@@ -74,7 +78,7 @@ def copy_electrodes(nwbfile_in, nwbfile_out):
                     else:
                         in_dict.update({colname: e_table[colname].data[electrode_no]})
             nwbfile_out.add_electrode(**in_dict)
-        for custom_e_column in set(e_table.colnames)-set(default_electrode_colnames):
+        for custom_e_column in set(e_table.colnames) - set(default_electrode_colnames):
             nwbfile_out.add_electrode_column(name=e_table[custom_e_column].name,
                                              description=e_table[custom_e_column].description,
                                              data=e_table[custom_e_column].data[()])
@@ -114,6 +118,7 @@ def extract_subject(nwbfile):
     else:
         sub_ = None
     return sub_
+
 
 def copy_trials(nwbfile_in, nwbfile_out):
     pass

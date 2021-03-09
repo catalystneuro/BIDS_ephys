@@ -109,7 +109,7 @@ def bep_organize(dataset_path, output_path=None, move_nwb=False):
             sessions_df.to_csv(bep_sessions_path, sep='\t')
 
     # create participants.tsv:
-    participants_df.to_csv(output_path/'participants.csv')
+    participants_df.to_csv(output_path/'participants.tsv', sep='\t')
     # create dataset_desrciption.json
     with open(output_path/'dataset_description.json', 'w') as j:
         json.dump(dataset_desc_json, j)

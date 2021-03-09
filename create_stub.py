@@ -41,7 +41,7 @@ def copy_nwb(nwb_file_path, nwb_save_path, **kwargs):
                                    lab=nwbfile.lab,
                                    subject=subject_info)
             # Electrical series copy:
-            es_name = kwargs.get('ElectricalSeries', None)
+            es_name = kwargs.get('ElectricalSeries', 'ElectricalSeries')
             stub_len = kwargs.get('stub', 0.01)
             es = create_electricalseries(nwbfile, nwbfile_stub, series_name=es_name, stub=stub_len)
             nwbfile_stub.add_acquisition(es)
@@ -83,14 +83,15 @@ def copy_electrodes(nwbfile_in, nwbfile_out):
 
 def create_electricalseries(nwbfile_in, nwbfile_out, stub=0.01, series_name='ElectricalSeries', region=None):
     es_input = nwbfile_in.acquisition.get(series_name, None)
-    electrodes_table = copy_electrodes(nwbfile_in, nwbfile_out)
-    if region is None:
-        region = list(range(es_input.data.shape[1]))
-    electrodes_table_region = DynamicTableRegion(name=electrodes_table.name,
-                                                 description=electrodes_table.description,
-                                                 data=region,
-                                                 table=electrodes_table)
+
     if es_input is not None:
+        electrodes_table = copy_electrodes(nwbfile_in, nwbfile_out)
+        if region is None:
+            region = list(range(es_input.data.shape[1]))
+        electrodes_table_region = DynamicTableRegion(name=electrodes_table.name,
+                                                     description=electrodes_table.description,
+                                                     data=region,
+                                                     table=electrodes_table)
         stub_length = np.round(es_input.data.shape[0]*stub).astype('int')
         stub_electrical_series = ElectricalSeries(name=es_input.name,
                                                   rate=es_input.rate,

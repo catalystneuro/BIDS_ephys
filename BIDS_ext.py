@@ -53,7 +53,7 @@ def bep_organize(dataset_path, output_path=None, move_nwb=False):
             if nwbfile.session_id is not None:
                 session_label = f'ses-{nwbfile.session_id}'
             else:
-                session_label = f'sub-{nwbfile.session_start_time.strftime("%Y%m%dT%X")}'
+                session_label = f'ses-{nwbfile.session_start_time.strftime("%Y%m%dT%H%M")}'
             # channels_info:
             no_channels = nwbfile.acquisition['ElectricalSeries'].data.shape[1]
             sampling_frequency = nwbfile.acquisition['ElectricalSeries'].rate

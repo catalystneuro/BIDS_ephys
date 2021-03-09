@@ -39,7 +39,7 @@ def bep_organize(dataset_path, output_path=None, move_nwb=False):
                 if sb.subject_id is not None:
                     subject_label = f'sub-{sb.subject_id}'
                 else:
-                    subject_label = f'sub-{sb.date_of_birth.strftime("%Y%m%dT%X")}'
+                    subject_label = f'sub-{sb.date_of_birth.strftime("%Y%m%dT%H%M")}'
             # dataset info:
             if dataset_desc_json is None:
                 dataset_desc_json = dict(InstitutionName=nwbfile.institution, InstitutionalDepartmentName=nwbfile.lab,
@@ -83,7 +83,7 @@ def bep_organize(dataset_path, output_path=None, move_nwb=False):
         if not bep_channels_path.exists():
             channels_df.to_csv(bep_channels_path, sep='\t')
         # create sessions.json
-        bep_sessions_path = subject_path/f'sub-{subject_label}_sessions.tsv'
+        bep_sessions_path = subject_path/f'{subject_label}_sessions.tsv'
         if not bep_sessions_path.exists():
             print(f'writing for subject: {subject_label}')
             sessions_df.to_csv(bep_sessions_path, sep='\t')

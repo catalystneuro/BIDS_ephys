@@ -66,7 +66,7 @@ def bep_organize(dataset_path, output_path=None, move_nwb=False):
                 channels_df.loc[len(channels_df.index)] = [chan_no, 'n.a.', 'neural signal', conversion_factor + unit,
                                                             sampling_frequency]
             #contacts/probes info:
-            e_table = nwbfile.acquisition['ElectricalSeries'].electroces.table
+            e_table = nwbfile.acquisition['ElectricalSeries'].electrodes.table
             for contact_no in range(len(e_table)):
                 contacts_df.loc[len(contacts_df.index)] = [e_table.x[contact_no],
                                                            e_table.y[contact_no],

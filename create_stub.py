@@ -14,7 +14,7 @@ def create_stub(data_path, **kwargs):
         out_path = data_path.with_name(f'stub_{data_path.name}')
         copy_nwb(data_path, out_path, **kwargs)
         print(f'saved {data_path} to {out_path}')
-    elif data_path.isdir():
+    elif data_path.is_dir():
         out_path = data_path.parent/'stub'/data_path.name
         for nwb_file in data_path.glob('**/*.nwb'):
             save_path = out_path/nwb_file.relative_to(data_path)

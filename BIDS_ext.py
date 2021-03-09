@@ -50,7 +50,10 @@ def bep_organize(dataset_path, output_path=None, move_nwb=False):
             trials_len = [len(nwbfile.trials) if nwbfile.trials is not None else None]
             sessions_df.loc[len(sessions_df.index)] = \
                 [nwbfile.session_id, trials_len, nwbfile.session_description]
-            session_label = f'ses-{nwbfile.session_id}'
+            if nwbfile.session_id is not None:
+                session_label = f'ses-{nwbfile.session_id}'
+            else:
+                session_label = f'sub-{nwbfile.session_start_time.strftime("%Y%m%dT%X")}'
             # channels_info:
             no_channels = nwbfile.acquisition['ElectricalSeries'].data.shape[1]
             sampling_frequency = nwbfile.acquisition['ElectricalSeries'].rate

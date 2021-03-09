@@ -36,7 +36,10 @@ def bep_organize(dataset_path, output_path=None, move_nwb=False):
                 sb = nwbfile.subject
                 participants_df.loc[len(participants_df.index)] = \
                     [sb.species, sb.subject_id, sb.sex, sb.date_of_birth, sb.age, sb.genotype, sb.weight]
-                subject_label = f'sub-{sb.subject_id}'
+                if sb.subject_id is not None:
+                    subject_label = f'sub-{sb.subject_id}'
+                else:
+                    subject_label = f'sub-{sb.date_of_birth.strftime("%Y%m%dT%X")}'
             # dataset info:
             if dataset_desc_json is None:
                 dataset_desc_json = dict(InstitutionName=nwbfile.institution, InstitutionalDepartmentName=nwbfile.lab,

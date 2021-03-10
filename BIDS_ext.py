@@ -36,8 +36,9 @@ def bep_organize(dataset_path, output_path=None, move_nwb=False):
             # subject info:
             if nwbfile.subject is not None:
                 sb = nwbfile.subject
-                participants_df.loc[len(participants_df.index)] = \
-                    [sb.species, sb.subject_id, sb.sex, sb.date_of_birth, sb.age, sb.genotype, sb.weight]
+                if sb.subject_id not in participants_df['ParticipantID']:
+                    participants_df.loc[len(participants_df.index)] = \
+                        [sb.species, sb.subject_id, sb.sex, sb.date_of_birth, sb.age, sb.genotype, sb.weight]
                 if sb.subject_id is not None:
                     subject_label = f'sub-{sb.subject_id}'
                 else:
@@ -94,22 +95,27 @@ def bep_organize(dataset_path, output_path=None, move_nwb=False):
         # channels.tsv:
         bep_channels_path = data_path/(generic_ephys_name + 'channels.tsv')
         if not bep_channels_path.exists():
-            channels_df.to_csv(bep_channels_path, sep='\t')
+            channels_df.dropna(axis='columns', how='all', inplace=True)
+            channels_df.to_csv(bep_channels_path, sep='\t', index=False)
         #probes/contacts:
         bep_probes_path = data_path/(generic_ephys_name + 'probes.tsv')
         if not bep_probes_path.exists():
-            probes_df.to_csv(bep_probes_path, sep='\t')
+            probes_df.dropna(axis='columns', how='all', inplace=True)
+            probes_df.to_csv(bep_probes_path, sep='\t', index=False)
         bep_contacts_path = data_path/(generic_ephys_name + 'contacts.tsv')
         if not bep_contacts_path.exists():
-            contacts_df.to_csv(bep_contacts_path, sep='\t')
+            contacts_df.dropna(axis='columns', how='all', inplace=True)
+            contacts_df.to_csv(bep_contacts_path, sep='\t', index=False)
         # create sessions.json
         bep_sessions_path = subject_path/f'{subject_label}_sessions.tsv'
         if not bep_sessions_path.exists():
             print(f'writing for subject: {subject_label}')
-            sessions_df.to_csv(bep_sessions_path, sep='\t')
+            sessions_df.dropna(axis='columns', how='all', inplace=True)
+            sessions_df.to_csv(bep_sessions_path, sep='\t', index=False)
 
     # create participants.tsv:
-    participants_df.to_csv(output_path/'participants.tsv', sep='\t')
+    participants_df.dropna(axis='columns', how='all', inplace=True)
+    participants_df.to_csv(output_path/'participants.tsv', sep='\t', index=False)
     # create dataset_desrciption.json
     with open(output_path/'dataset_description.json', 'w') as j:
         json.dump(dataset_desc_json, j)

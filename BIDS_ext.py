@@ -91,7 +91,7 @@ def bep_organize(dataset_path, output_path=None, move_nwb=False):
                 conversion_factor = [i if j == es.conversion else ''
                                      for i, j in conversion_dict.items()][0]
                 for chan_no in range(no_channels):
-                    channels_df.loc[len(channels_df.index)] = [chan_no, 'n.a.', 'neural signal',
+                    channels_df.loc[len(channels_df.index)] = [chan_no, chan_no, 'neural signal',
                                                                conversion_factor + unit,
                                                                sampling_frequency]
 

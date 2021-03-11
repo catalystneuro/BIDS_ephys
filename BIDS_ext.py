@@ -75,7 +75,7 @@ def bep_organize(dataset_path, output_path=None, move_nwb=False):
                 # if label_count>0:
             else:
                 session_label = f'ses-{nwbfile.session_start_time.strftime("%Y%m%dT%H%M")}'
-            trials_len = [len(nwbfile.trials) if nwbfile.trials is not None else None]
+            trials_len = len(nwbfile.trials) if nwbfile.trials is not None else None
             if not sessions_df['session_id'].str.contains(session_label).any():
                 sessions_count += 1
                 sessions_df.loc[len(sessions_df.index)] = \
@@ -108,8 +108,8 @@ def bep_organize(dataset_path, output_path=None, move_nwb=False):
                                                                contact_no,
                                                                e_table.group_name[contact_no],
                                                                e_table.location[contact_no]]
-            for device in nwbfile.devices.values():
-                probes_df.loc[len(probes_df.index)] = [device.name, 'acute']
+            for probe_id in contacts_df['probe_id'].unique():
+                probes_df.loc[len(probes_df.index)] = [probe_id, 'acute']#TODO: acute/chronic
 
         # construct the folders:
         generic_ephys_name = f'{subject_label}_{session_label}_'
@@ -149,7 +149,7 @@ def bep_organize(dataset_path, output_path=None, move_nwb=False):
         with open(bep_ephysdesc_path, 'w') as j:
             json.dump(ephys_desc_json, j)
         # create sessions.json
-        # sessions_df.dropna(axis='columns', how='all', inplace=True) # TODO
+        # sessions_df.dropna(axis='columns', how='all', inplace=True) # TODO, remove none fields
         sessions_df.to_csv(bep_sessions_path, sep='\t', index=False)
 
     # create participants.tsv:
@@ -163,3 +163,6 @@ def bep_organize(dataset_path, output_path=None, move_nwb=False):
         dataset_desc_tosave = {k: v for k, v in dataset_desc_json.items() if v is not None}
         json.dump(dataset_desc_tosave, j)
     print(f'total nwbfiles orgainzed {file_count}, sessions count {sessions_count}')
+
+def bep_check(folder_path):
+    pass

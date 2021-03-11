@@ -1,4 +1,5 @@
 import json
+from collections import defaultdict
 from pathlib import Path
 
 import pandas as pd
@@ -8,7 +9,7 @@ from pynwb.ecephys import ElectricalSeries
 REQ_DATASETS = ['dataset_description.json', 'participants.tsv', 'sessions.tsv']
 
 
-def bep_organize(dataset_path, output_path=None, move_nwb=False):
+def bep_organize(dataset_path, output_path=None, move_nwb=False, re_write=True):
     """
     organize data according to teh BIDS extention proposal
     Parameters
@@ -19,7 +20,8 @@ def bep_organize(dataset_path, output_path=None, move_nwb=False):
     dataset_path = Path(dataset_path)
     if output_path is None:
         output_path = dataset_path.parent/'BIDSExt'/dataset_path.name
-
+    if re_write and output_path.exists():
+        output_path.unlink()
     participants_df = pd.DataFrame(
         columns=['Species', 'ParticipantID', 'Sex', 'Birthdate', 'Age', 'Genotype', 'Weight'])
     conversion_dict = dict(milli=1e-3, micro=1e-6)
@@ -28,6 +30,7 @@ def bep_organize(dataset_path, output_path=None, move_nwb=False):
     dataset_path = Path(dataset_path)
     file_count = 0
     sessions_count = 0
+    sub_ses_dict = defaultdict(list)
     for nwb_file in dataset_path.glob('**/*.nwb'):
         file_count += 1
         channels_df = pd.DataFrame(columns=['channel_id', 'Contact_id', 'type', 'units', 'sampling_frequency',
@@ -68,7 +71,7 @@ def bep_organize(dataset_path, output_path=None, move_nwb=False):
                 print(f'writing for subject: {subject_label}')
                 sessions_df = pd.DataFrame(columns=['session_id', '#_trials', 'comment'])
             else:
-                sessions_df = pd.read_csv(bep_sessions_path,sep='\t')
+                sessions_df = pd.read_csv(bep_sessions_path, sep='\t')
             if nwbfile.session_id is not None:
                 session_label = f'ses-{nwbfile.session_id}'
                 # label_count = sessions_df['session_id'].str.contains(session_label).sum()
@@ -97,7 +100,7 @@ def bep_organize(dataset_path, output_path=None, move_nwb=False):
                                                                conversion_factor + unit,
                                                                sampling_frequency, conversion]
 
-            #update ephys json:
+            # update ephys json:
             ephys_desc_json = dict(PowerLineFrequency=60.0)
             # contacts/probes info:
             e_table = nwbfile.electrodes
@@ -111,11 +114,11 @@ def bep_organize(dataset_path, output_path=None, move_nwb=False):
                                                                e_table.group_name[contact_no],
                                                                e_table.location[contact_no]]
             for probe_id in contacts_df['probe_id'].unique():
-                probes_df.loc[len(probes_df.index)] = [probe_id, 'acute']#TODO: acute/chronic
+                probes_df.loc[len(probes_df.index)] = [probe_id, 'acute']  # TODO: acute/chronic
 
         # construct the folders:
         generic_ephys_name = f'{subject_label}_{session_label}_'
-
+        sub_ses_dict[subject_label].append(session_label)
         ses_path = subject_path/session_label
         data_path = ses_path/'ephys'
         data_path.mkdir(parents=True, exist_ok=True)
@@ -135,7 +138,7 @@ def bep_organize(dataset_path, output_path=None, move_nwb=False):
             channels_df.dropna(axis='columns', how='all', inplace=True)
             channels_df.to_csv(bep_channels_path, sep='\t', index=False)
 
-        # probes/contacts:
+        # probes/contacts.tsv:
         bep_probes_path = data_path/(generic_ephys_name + 'probes.tsv')
         if not bep_probes_path.exists():
             probes_df.dropna(axis='columns', how='all', inplace=True)
@@ -146,13 +149,20 @@ def bep_organize(dataset_path, output_path=None, move_nwb=False):
             if len(contacts_df) > 0:
                 contacts_df.to_csv(bep_contacts_path, sep='\t', index=False)
 
-        # ephys description:
+        # ephys.json:
         bep_ephysdesc_path = data_path/(generic_ephys_name + 'ephys.json')
         with open(bep_ephysdesc_path, 'w') as j:
             json.dump(ephys_desc_json, j)
-        # create sessions.json
-        # sessions_df.dropna(axis='columns', how='all', inplace=True) # TODO, remove none fields
+
+        # create sessions.tsv
         sessions_df.to_csv(bep_sessions_path, sep='\t', index=False)
+
+    # clean sessions_df_csv files for all subjects:
+    for sub_label in sub_ses_dict:
+        subject_path = output_path/sub_label/f'{sub_label}_sessions.tsv'
+        session_df_loop = pd.read_csv(subject_path, sep='\t')
+        session_df_loop.dropna(axis='columns', how='all', inplace=True)
+        session_df_loop.to_csv(subject_path, sep='\t', index=False)
 
     # create participants.tsv:
     participants_df.dropna(axis='columns', how='all', inplace=True)
@@ -165,6 +175,8 @@ def bep_organize(dataset_path, output_path=None, move_nwb=False):
         dataset_desc_tosave = {k: v for k, v in dataset_desc_json.items() if v is not None}
         json.dump(dataset_desc_tosave, j)
     print(f'total nwbfiles orgainzed {file_count}, sessions count {sessions_count}')
+    return sub_ses_dict
+
 
 def bep_check(folder_path):
     pass

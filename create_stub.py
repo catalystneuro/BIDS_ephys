@@ -52,6 +52,7 @@ def copy_nwb(nwb_file_path, nwb_save_path, **kwargs):
             stub_perc = kwargs.get('stub', STUB_percentage)
             es = create_electricalseries(nwbfile, nwbfile_stub, series_name=es_name, stub=stub_perc)
             nwbfile_stub.add_acquisition(es)
+            copy_trials(nwbfile, nwbfile_stub)
             # create processing:
             # TODO
             io2.write(nwbfile_stub)

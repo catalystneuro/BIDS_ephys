@@ -140,6 +140,7 @@ def copy_trials(nwbfile_in, nwbfile_out, stub=STUB_percentage):
                         in_dict.update(timeseries=TimeSeries(ts_kwargs))
                     else:
                         in_dict.update({colname: trials_table[colname][trial_no]})
+            nwbfile_out.add_trial(**in_dict)
 
         for custom_e_column in set(trials_table.colnames) - set(default_trial_columns):
             nwbfile_out.add_trial_column(name=trials_table[custom_e_column].name,

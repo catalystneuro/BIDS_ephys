@@ -128,21 +128,18 @@ def copy_trials(nwbfile_in, nwbfile_out, stub=STUB_percentage):
     default_trial_columns = ['start_time', 'stop_time', 'tags', 'timeseries']
     trials_table = nwbfile_in.trials
     if trials_table is not None:
+        for custom_e_column in set(trials_table.colnames) - set(default_trial_columns):
+            nwbfile_out.add_trial_column(name=trials_table[custom_e_column].name,
+                                         description=trials_table[custom_e_column].description)
         for trial_no in range(len(trials_table)):
             in_dict = {}
             for colname in trials_table.colnames:
-                if colname in default_trial_columns:
-                    if 'timeseries' == colname:
-                        ts_in = trials_table[colname][trial_no]
-                        ts_kwargs = {i: j for i, j in ts_in.fields if i not in ['data', 'timestamps']}
-                        stub_length = np.round(ts_in.data.shape[0]*stub).astype('int')
-                        ts_kwargs.update(data=ts_in.data[: stub_length], timestamps=ts_in.timestamps[:stub_length])
-                        in_dict.update(timeseries=TimeSeries(ts_kwargs))
-                    else:
-                        in_dict.update({colname: trials_table[colname][trial_no]})
-            nwbfile_out.add_trial(**in_dict)
-
-        for custom_e_column in set(trials_table.colnames) - set(default_trial_columns):
-            nwbfile_out.add_trial_column(name=trials_table[custom_e_column].name,
-                                         description=trials_table[custom_e_column].description,
-                                         data=trials_table[custom_e_column].data[()])
+                if 'timeseries' == colname:
+                    ts_in = trials_table[colname][trial_no]
+                    ts_kwargs = {i: j for i, j in ts_in.fields if i not in ['data', 'timestamps']}
+                    stub_length = np.round(ts_in.data.shape[0]*stub).astype('int')
+                    ts_kwargs.update(data=ts_in.data[: stub_length], timestamps=ts_in.timestamps[:stub_length])
+                    in_dict.update(timeseries=TimeSeries(ts_kwargs))
+                else:
+                    in_dict.update({colname: trials_table[colname][trial_no]})
+            nwbfile_out.trials.add_row(**in_dict)

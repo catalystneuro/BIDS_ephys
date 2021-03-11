@@ -30,7 +30,8 @@ def bep_organize(dataset_path, output_path=None, move_nwb=False):
     sessions_count = 0
     for nwb_file in dataset_path.glob('**/*.nwb'):
         file_count += 1
-        channels_df = pd.DataFrame(columns=['channel_id', 'Contact_id', 'type', 'units', 'sampling_frequency'])
+        channels_df = pd.DataFrame(columns=['channel_id', 'Contact_id', 'type', 'units', 'sampling_frequency',
+                                            'unit_conversion_multiplier'])
         contacts_df = pd.DataFrame(columns=['x', 'y', 'z', 'impedance', 'contact_id', 'probe_id', 'Location'])
         probes_df = pd.DataFrame(columns=['probeID', 'type'])
 
@@ -87,13 +88,14 @@ def bep_organize(dataset_path, output_path=None, move_nwb=False):
                 es = es[0]
                 no_channels = es.data.shape[1]
                 sampling_frequency = es.rate
+                conversion = es.conversion
                 unit = es.unit
                 conversion_factor = [i if j == es.conversion else ''
                                      for i, j in conversion_dict.items()][0]
                 for chan_no in range(no_channels):
                     channels_df.loc[len(channels_df.index)] = [chan_no, chan_no, 'neural signal',
                                                                conversion_factor + unit,
-                                                               sampling_frequency]
+                                                               sampling_frequency, conversion]
 
             #update ephys json:
             ephys_desc_json = dict(PowerLineFrequency=60.0)

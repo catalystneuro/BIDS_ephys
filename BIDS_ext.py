@@ -13,7 +13,7 @@ REQ_DATASETS = [f'dataset_description.json', 'participants.tsv', '{subject_label
                 '{subject_label}\\{session_label}\\ephys\\{subject_label}_{session_label}_probes.tsv']
 
 
-def bep_organize(dataset_path, output_path=None, move_nwb=False, re_write=True):
+def bep_organize(dataset_path, output_path=None, move_nwb=False, re_write=True, **kwargs):
     """
     organize data according to teh BIDS extention proposal
     Parameters
@@ -54,7 +54,7 @@ def bep_organize(dataset_path, output_path=None, move_nwb=False, re_write=True):
                     subject_label = f'sub-{sb.date_of_birth.strftime("%Y%m%dT%H%M")}'
                 if not participants_df['ParticipantID'].str.contains(subject_label).any():
                     participants_df.loc[len(participants_df.index)] = \
-                        [sb.species, subject_label, sb.sex, sb.date_of_birth, sb.age, sb.genotype, sb.weight]
+                        [sb.species, subject_label, sb.sex[0] if sb.sex is not None else None, sb.date_of_birth, sb.age, sb.genotype, sb.weight]
             else:
                 subject_label = 'sub-none'
                 if not participants_df['ParticipantID'].str.contains(subject_label).any():
@@ -118,7 +118,7 @@ def bep_organize(dataset_path, output_path=None, move_nwb=False, re_write=True):
                                                                e_table.group_name[contact_no],
                                                                e_table.location[contact_no]]
             for probe_id in contacts_df['probe_id'].unique():
-                probes_df.loc[len(probes_df.index)] = [probe_id, 'acute']  # TODO: acute/chronic
+                probes_df.loc[len(probes_df.index)] = [probe_id, kwargs.get('probe_type', 'acute')]
 
         # construct the folders:
         generic_ephys_name = f'{subject_label}_{session_label}_'

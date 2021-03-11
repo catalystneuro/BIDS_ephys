@@ -6,7 +6,11 @@ import pandas as pd
 from pynwb import NWBHDF5IO
 from pynwb.ecephys import ElectricalSeries
 
-REQ_DATASETS = ['dataset_description.json', 'participants.tsv', 'sessions.tsv']
+REQ_DATASETS = [f'dataset_description.json', 'participants.tsv', '{subject_label}\\{subject_label}_sessions.tsv',
+                '{subject_label}\\{session_label}\\ephys\\{subject_label}_{session_label}_channels.tsv',
+                '{subject_label}\\{session_label}\\ephys\\{subject_label}_{session_label}_contacts.tsv',
+                '{subject_label}\\{session_label}\\ephys\\{subject_label}_{session_label}_ephys.json',
+                '{subject_label}\\{session_label}\\ephys\\{subject_label}_{session_label}_probes.tsv']
 
 
 def bep_organize(dataset_path, output_path=None, move_nwb=False, re_write=True):
@@ -179,4 +183,20 @@ def bep_organize(dataset_path, output_path=None, move_nwb=False, re_write=True):
 
 
 def bep_check(folder_path):
-    pass
+    folder_path = Path(folder_path)
+    sub_ses_dict = defaultdict(list)
+    for subject_label in folder_path.iterdir():
+        if subject_label.is_dir():
+            assert subject_label.name.startswith('sub-'), \
+                f'subject name {subject_label} has incorrect format'
+            for session_label in subject_label.iterdir():
+                if session_label.is_dir():
+                    assert session_label.name.startswith('ses-'), \
+                        f'session name {session_label} has incorrect format'
+                    sub_ses_dict[subject_label.name].append(session_label.name)
+    for req_dataset in REQ_DATASETS:
+        for subject_label, sessions_label in sub_ses_dict.items():
+            for session_label in sessions_label:
+                file_path = folder_path/req_dataset.format(
+                    subject_label=subject_label, session_label=session_label)
+                assert file_path.exists(), f'missing {file_path}'

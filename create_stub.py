@@ -5,8 +5,11 @@ from hdmf.common.table import DynamicTableRegion
 from joblib import Parallel, delayed
 from pynwb import NWBFile
 from pynwb import NWBHDF5IO
+from pynwb.base import TimeSeries
 from pynwb.ecephys import ElectricalSeries
 from pynwb.file import Subject
+
+STUB_percentage = 0.01
 
 
 def create_stub(data_path, n_jobs=10, **kwargs):
@@ -46,15 +49,15 @@ def copy_nwb(nwb_file_path, nwb_save_path, **kwargs):
                                    subject=subject_info)
             # Electrical series copy:
             es_name = kwargs.get('ElectricalSeries', 'ElectricalSeries')
-            stub_len = kwargs.get('stub', 0.01)
-            es = create_electricalseries(nwbfile, nwbfile_stub, series_name=es_name, stub=stub_len)
+            stub_perc = kwargs.get('stub', STUB_percentage)
+            es = create_electricalseries(nwbfile, nwbfile_stub, series_name=es_name, stub=stub_perc)
             nwbfile_stub.add_acquisition(es)
             # create processing:
             # TODO
             io2.write(nwbfile_stub)
 
 
-def copy_electrodes(nwbfile_in, nwbfile_out):
+def copy_electrodes_table(nwbfile_in, nwbfile_out):
     e_table = nwbfile_in.electrodes
     # create device:
     for device_name in nwbfile_in.devices:
@@ -85,11 +88,11 @@ def copy_electrodes(nwbfile_in, nwbfile_out):
     return nwbfile_out.electrodes
 
 
-def create_electricalseries(nwbfile_in, nwbfile_out, stub=0.01, series_name='ElectricalSeries', region=None):
+def create_electricalseries(nwbfile_in, nwbfile_out, stub=STUB_percentage, series_name='ElectricalSeries', region=None):
     es_input = nwbfile_in.acquisition.get(series_name, None)
 
     if es_input is not None:
-        electrodes_table = copy_electrodes(nwbfile_in, nwbfile_out)
+        electrodes_table = copy_electrodes_table(nwbfile_in, nwbfile_out)
         if region is None:
             region = list(range(es_input.data.shape[1]))
         electrodes_table_region = DynamicTableRegion(name=electrodes_table.name,
@@ -120,5 +123,24 @@ def extract_subject(nwbfile):
     return sub_
 
 
-def copy_trials(nwbfile_in, nwbfile_out):
-    pass
+def copy_trials(nwbfile_in, nwbfile_out, stub=STUB_percentage):
+    default_trial_columns = ['start_time', 'stop_time', 'tags', 'timeseries']
+    trials_table = nwbfile_in.trials
+    if trials_table is not None:
+        for trial_no in range(len(trials_table)):
+            in_dict = {}
+            for colname in trials_table.colnames:
+                if colname in default_trial_columns:
+                    if 'timeseries' == colname:
+                        ts_in = trials_table[colname][trial_no]
+                        ts_kwargs = {i: j for i, j in ts_in.fields if i not in ['data', 'timestamps']}
+                        stub_length = np.round(ts_in.data.shape[0]*stub).astype('int')
+                        ts_kwargs.update(data=ts_in.data[: stub_length], timestamps=ts_in.timestamps[:stub_length])
+                        in_dict.update(timeseries=TimeSeries(ts_kwargs))
+                    else:
+                        in_dict.update({colname: trials_table[colname][trial_no]})
+
+        for custom_e_column in set(trials_table.colnames) - set(default_trial_columns):
+            nwbfile_out.add_trial_column(name=trials_table[custom_e_column].name,
+                                         description=trials_table[custom_e_column].description,
+                                         data=trials_table[custom_e_column].data[()])

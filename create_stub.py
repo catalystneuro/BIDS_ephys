@@ -36,7 +36,7 @@ def copy_nwb(nwb_file_path, nwb_save_path, **kwargs):
     with NWBHDF5IO(str(nwb_file_path), 'r') as io1:
         nwbfile = io1.read()
         with NWBHDF5IO(str(nwb_save_path), 'w') as io2:
-            subject_info = extract_subject(nwbfile)
+            subject_info = create_subject(nwbfile)
 
             nwbfile_stub = NWBFile(session_description=nwbfile.session_description,
                                    identifier=nwbfile.identifier,
@@ -89,6 +89,27 @@ def copy_electrodes_table(nwbfile_in, nwbfile_out):
     return nwbfile_out.electrodes
 
 
+def copy_trials(nwbfile_in, nwbfile_out, stub=STUB_percentage):
+    default_trial_columns = ['start_time', 'stop_time', 'tags', 'timeseries']
+    trials_table = nwbfile_in.trials
+    if trials_table is not None:
+        for custom_e_column in set(trials_table.colnames) - set(default_trial_columns):
+            nwbfile_out.add_trial_column(name=trials_table[custom_e_column].name,
+                                         description=trials_table[custom_e_column].description)
+        for trial_no in range(len(trials_table)):
+            in_dict = {}
+            for colname in trials_table.colnames:
+                if 'timeseries' == colname:
+                    ts_in = trials_table[colname][trial_no]
+                    ts_kwargs = {i: j for i, j in ts_in.fields if i not in ['data', 'timestamps']}
+                    stub_length = np.round(ts_in.data.shape[0]*stub).astype('int')
+                    ts_kwargs.update(data=ts_in.data[: stub_length], timestamps=ts_in.timestamps[:stub_length])
+                    in_dict.update(timeseries=TimeSeries(ts_kwargs))
+                else:
+                    in_dict.update({colname: trials_table[colname][trial_no]})
+            nwbfile_out.trials.add_row(**in_dict)
+
+
 def create_electricalseries(nwbfile_in, nwbfile_out, stub=STUB_percentage, series_name='ElectricalSeries', region=None):
     es_input = nwbfile_in.acquisition.get(series_name, None)
 
@@ -113,7 +134,7 @@ def create_electricalseries(nwbfile_in, nwbfile_out, stub=STUB_percentage, serie
     return stub_electrical_series
 
 
-def extract_subject(nwbfile):
+def create_subject(nwbfile):
     if nwbfile.subject is not None:
         sub = nwbfile.subject
         sub_ = Subject(age=sub.age, description=sub.description, genotype=sub.genotype, sex=sub.sex,
@@ -122,24 +143,3 @@ def extract_subject(nwbfile):
     else:
         sub_ = None
     return sub_
-
-
-def copy_trials(nwbfile_in, nwbfile_out, stub=STUB_percentage):
-    default_trial_columns = ['start_time', 'stop_time', 'tags', 'timeseries']
-    trials_table = nwbfile_in.trials
-    if trials_table is not None:
-        for custom_e_column in set(trials_table.colnames) - set(default_trial_columns):
-            nwbfile_out.add_trial_column(name=trials_table[custom_e_column].name,
-                                         description=trials_table[custom_e_column].description)
-        for trial_no in range(len(trials_table)):
-            in_dict = {}
-            for colname in trials_table.colnames:
-                if 'timeseries' == colname:
-                    ts_in = trials_table[colname][trial_no]
-                    ts_kwargs = {i: j for i, j in ts_in.fields if i not in ['data', 'timestamps']}
-                    stub_length = np.round(ts_in.data.shape[0]*stub).astype('int')
-                    ts_kwargs.update(data=ts_in.data[: stub_length], timestamps=ts_in.timestamps[:stub_length])
-                    in_dict.update(timeseries=TimeSeries(ts_kwargs))
-                else:
-                    in_dict.update({colname: trials_table[colname][trial_no]})
-            nwbfile_out.trials.add_row(**in_dict)

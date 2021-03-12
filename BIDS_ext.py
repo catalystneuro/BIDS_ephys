@@ -28,7 +28,6 @@ def bep_organize(dataset_path, output_path=None, move_nwb=False, re_write=True, 
         output_path.unlink()
     participants_df = pd.DataFrame(
         columns=['Species', 'ParticipantID', 'Sex', 'Birthdate', 'Age', 'Genotype', 'Weight'])
-    conversion_dict = dict(milli=1e-3, micro=1e-6)
     dataset_desc_json = None
 
     dataset_path = Path(dataset_path)
@@ -97,11 +96,9 @@ def bep_organize(dataset_path, output_path=None, move_nwb=False, re_write=True, 
                 sampling_frequency = es.rate
                 conversion = es.conversion
                 unit = es.unit
-                conversion_factor = [i if j == es.conversion else ''
-                                     for i, j in conversion_dict.items()][0]
                 for chan_no in range(no_channels):
                     channels_df.loc[len(channels_df.index)] = [chan_no, chan_no, 'neural signal',
-                                                               conversion_factor + unit,
+                                                               unit,
                                                                sampling_frequency, conversion]
 
             # update ephys json:

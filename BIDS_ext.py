@@ -112,7 +112,7 @@ def bep_organize(dataset_path, output_path=None, move_nwb=False, re_write=True, 
                                                                e_table.z[contact_no],
                                                                e_table.imp[contact_no],
                                                                contact_no,
-                                                               e_table.group_name[contact_no],
+                                                               e_table.group[contact_no].device.name,
                                                                e_table.location[contact_no]]
             for probe_id in contacts_df['probe_id'].unique():
                 probes_df.loc[len(probes_df.index)] = [probe_id, kwargs.get('probe_type', 'acute')]

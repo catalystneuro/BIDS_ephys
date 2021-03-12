@@ -18,8 +18,17 @@ def bep_organize(dataset_path, output_path=None, move_nwb=False, re_write=True, 
     organize data according to teh BIDS extention proposal
     Parameters
     ----------
+    re_write: bool
+        if true, will rewrite an already existing output path
+    move_nwb: bool
+        if true, will move the nwb file in the new directory structure,
+        else will create a symlink
+    output_path: [str, Path]
+        parent path to the BIDS folder structure
     dataset_path : [str, Path]
         path to the folder containing all the nwb datasets that need organization.
+    kwargs:
+        probe_type: acute/chronic
     """
     dataset_path = Path(dataset_path)
     if output_path is None:
@@ -53,7 +62,8 @@ def bep_organize(dataset_path, output_path=None, move_nwb=False, re_write=True, 
                     subject_label = f'sub-{sb.date_of_birth.strftime("%Y%m%dT%H%M")}'
                 if not participants_df['ParticipantID'].str.contains(subject_label).any():
                     participants_df.loc[len(participants_df.index)] = \
-                        [sb.species, subject_label, sb.sex[0] if sb.sex is not None else None, sb.date_of_birth, sb.age, sb.genotype, sb.weight]
+                        [sb.species, subject_label, sb.sex[0] if sb.sex is not None else None,
+                         sb.date_of_birth, sb.age, sb.genotype, sb.weight]
             else:
                 subject_label = 'sub-none'
                 if not participants_df['ParticipantID'].str.contains(subject_label).any():
